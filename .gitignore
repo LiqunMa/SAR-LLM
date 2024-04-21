@@ -1,0 +1,6 @@
+__pycache__/
+finetuning_data/
+n_gram_dicts/
+n_gram_distribution/
+tokenized_data/
+record/
