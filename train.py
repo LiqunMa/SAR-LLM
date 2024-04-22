@@ -200,13 +200,14 @@ class DataCollatorForNormalSmoothLabel(object):
         soft_labels = []
         
         for label in labels:
-            soft_label = np.zeros((len(label), self.tokenizer.vocab_size + 1), dtype=np.float32).fill((1-self.alpha)/(self.tokenizer.vocab_size-1))
+            soft_label = np.zeros((len(label), self.tokenizer.vocab_size + 1), dtype=np.float32)+(1-self.alpha)/(self.tokenizer.vocab_size+1)
             for i in range(len(label)):
                 if label[i] != IGNORE_INDEX:
-                    soft_label[i][label[i]] = self.alpha
+                    soft_label[i][label[i]] += self.alpha
                 else:
                     soft_label[i] = 0.0
             soft_labels.append(torch.tensor(soft_label))
+            # print(soft_label.sum(1))
 
         input_ids = torch.nn.utils.rnn.pad_sequence(
             input_ids, batch_first=True, padding_value=self.tokenizer.pad_token_id

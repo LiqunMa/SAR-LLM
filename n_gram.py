@@ -11,13 +11,16 @@ def get_max_len(data_path):
             max_len = max(max_len, len(d['tk_ids']))
     print(max_len)
 
-def stat_file_ngram(file_p, n_gram=1):
+def stat_file_ngram(file_p, n_gram=1, key='tk_ids', add_eos_id=False):
     n_gram_dict = {}
     prefix_dict = {}
     with Path(file_p).open('r', encoding='utf-8') as r_f:
         for line in tqdm(r_f):
             d = json.loads(line.strip())
-            tk_ids = d['tk_ids']
+            if add_eos_id:
+                tk_ids = d[key] + [2]
+            else:
+                tk_ids = d[key]
             for i in range(len(tk_ids) - n_gram + 1):
                 n_gram_tk = tk_ids[i: i + n_gram]
                 prefix = ' '.join([str(t) for t in n_gram_tk[:-1]])
@@ -45,14 +48,15 @@ def stat_file_ngram(file_p, n_gram=1):
     res['n_gram_vsize_p>1'] = len(res['n_gram_dict'])
     return res
 
-def get_all_ngram_count():
+def get_all_ngram_count(tk_file_path = 'tokenized_data/alpaca_tokenized.json', save_name='alpaca', max_n=32, key='tk_ids', add_eos_id=False):
     record = {}
-    for n_gram in tqdm(range(1, 1304)):
-        res = stat_file_ngram('tokenized_data/alpaca_tokenized.json', n_gram)
+    Path(f'n_gram_dicts/{save_name}').mkdir(exist_ok=True, parents=True)
+    for n_gram in tqdm(range(1, max_n+1)):
+        res = stat_file_ngram(tk_file_path, n_gram, key = key, add_eos_id=add_eos_id)
         if res["n_gram_num_p>1"] == 0:
             break
         print(f'n_gram: {n_gram}, n_gram_vsize: {res["n_gram_vsize"]}, n_gram_num: {res["n_gram_num"]}, n_gram_vsize_p>1: {res["n_gram_vsize_p>1"]}, n_gram_num_p>1: {res["n_gram_num_p>1"]}')
-        with Path(f'n_gram_dicts/alpaca/{n_gram}_gram.json').open('w', encoding='utf-8') as w_f:
+        with Path(f'n_gram_dicts/{save_name}/{n_gram}_gram.json').open('w', encoding='utf-8') as w_f:
             json.dump(res, w_f, ensure_ascii=False)
         record[f'{n_gram}_gram'] = {
             'n_gram_vsize': res["n_gram_vsize"],
@@ -60,7 +64,7 @@ def get_all_ngram_count():
             'n_gram_vsize_p>1': res["n_gram_vsize_p>1"],
             'n_gram_num_p>1': res["n_gram_num_p>1"]
         }
-        with Path('n_gram_dicts/record/alpaca.json').open('w', encoding='utf-8') as w_f:
+        with Path(f'n_gram_dicts/record/{save_name}.json').open('w', encoding='utf-8') as w_f:
             json.dump(record, w_f, ensure_ascii=False, indent=4)
 
 # def get_prefix_set(pre_ngram, ordered_ngram_list):
@@ -152,5 +156,7 @@ def check():
 if __name__ == '__main__':
     # get_max_len('tokenized_data/alpaca_tokenized.json')
     # get_all_ngram_count()
-    get_infi_ngram_distribution('n_gram_dicts/alpaca', max_n_gram=32)
-    # check()
+    # get_infi_ngram_distribution('n_gram_dicts/alpaca', max_n_gram=32)
+    
+    get_all_ngram_count(tk_file_path = 'tokenized_data/RedPajama-Data-1T-Sample_all.jsonl', save_name='RedPajama-Sample', max_n=32, key="input_ids", add_eos_id=True)
+    get_infi_ngram_distribution('n_gram_dicts/RedPajama-Sample', max_n_gram=32)

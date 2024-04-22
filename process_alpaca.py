@@ -23,23 +23,6 @@ ALPACA_PROMPT_DICT = {
     ),
 }
 
-
-def ngram_llm(tks, n, ngram_dist):
-    assert len(tks) <= n 
-    tks = [str(t) for t in tks]
-    for _n in range(len(tks), 1, -1):
-        prefix = ' '.join(tks[-_n:-1])
-        if prefix in ngram_dist[str(_n)]:
-            next_tks, prob = ngram_dist[str(_n)][prefix]
-            next_tks = [int(i) for i in next_tks]
-            print('in ngram')
-            return next_tks, prob
-    
-    
-    next_tks, prob = ngram_dist['1']
-    next_tks = [int(i) for i in next_tks]
-    return next_tks, prob
-
 def get_alpaca_docs(data_path = Path('finetuning_data/alpaca_data.json')):
     tokenizer = AutoTokenizer.from_pretrained('huggyllama/llama-7b')
     with Path(data_path).open('r', encoding='utf-8') as r_f:
