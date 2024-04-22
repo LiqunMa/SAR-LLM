@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
 from tqdm import tqdm
+from multiprocessing import Pool
+from functools import partial
 
 def get_max_len(data_path):
     max_len = 0
@@ -64,21 +66,28 @@ def get_all_ngram_count(tk_file_path = 'tokenized_data/alpaca_tokenized.json', s
             'n_gram_vsize_p>1': res["n_gram_vsize_p>1"],
             'n_gram_num_p>1': res["n_gram_num_p>1"]
         }
-        with Path(f'n_gram_dicts/record/{save_name}.json').open('w', encoding='utf-8') as w_f:
-            json.dump(record, w_f, ensure_ascii=False, indent=4)
+    with Path(f'n_gram_dicts/record/{save_name}.json').open('w', encoding='utf-8') as w_f:
+        json.dump(record, w_f, ensure_ascii=False, indent=4)
 
-# def get_prefix_set(pre_ngram, ordered_ngram_list):
-#     prefix = pre_ngram + ' '
-#     ngram_with_prefix_set = set()
-#     state = False
-#     for ngram in ordered_ngram_list:
-#         if ngram.startswith(prefix):
-#             state = True
-#             ngram_with_prefix_set.add(ngram)
-#         else:
-#             if state == True:
-#                 break
-#     return ngram_with_prefix_set
+def single_get_all_ngram_count(n, tk_file_path, save_name, key, add_eos_id):
+    res = stat_file_ngram(tk_file_path, n, key = key, add_eos_id=add_eos_id)
+    if res["n_gram_num_p>1"] == 0:
+        return
+    print(f'n_gram: {n}, n_gram_vsize: {res["n_gram_vsize"]}, n_gram_num: {res["n_gram_num"]}, n_gram_vsize_p>1: {res["n_gram_vsize_p>1"]}, n_gram_num_p>1: {res["n_gram_num_p>1"]}')
+    with Path(f'n_gram_dicts/{save_name}/{n}_gram.json').open('w', encoding='utf-8') as w_f:
+        json.dump(res, w_f, ensure_ascii=False)
+
+def multi_get_all_ngram_count(tk_file_path, save_name, max_n, key, add_eos_id):
+    Path(f'n_gram_dicts/{save_name}').mkdir(exist_ok=True, parents=True)
+    func = partial(single_get_all_ngram_count, 
+                   tk_file_path = tk_file_path, 
+                   save_name = save_name, 
+                   key=key, 
+                   add_eos_id=add_eos_id)
+    params = list(range(4, 16))
+    with Pool(len(params)) as pool:
+        pool.map(func, params)
+
 
 def get_infi_ngram_distribution(data_root, max_n_gram=382):
     data_root = Path(data_root)
@@ -158,5 +167,6 @@ if __name__ == '__main__':
     # get_all_ngram_count()
     # get_infi_ngram_distribution('n_gram_dicts/alpaca', max_n_gram=32)
     
-    get_all_ngram_count(tk_file_path = 'tokenized_data/RedPajama-Data-1T-Sample_all.jsonl', save_name='RedPajama-Sample', max_n=32, key="input_ids", add_eos_id=True)
-    get_infi_ngram_distribution('n_gram_dicts/RedPajama-Sample', max_n_gram=32)
+    # get_all_ngram_count(tk_file_path = 'tokenized_data/RedPajama-Data-1T-Sample_all.jsonl', save_name='RedPajama-Sample', max_n=32, key="input_ids", add_eos_id=True)
+    # get_infi_ngram_distribution('n_gram_dicts/RedPajama-Sample', max_n_gram=32)
+    multi_get_all_ngram_count(tk_file_path = 'tokenized_data/RedPajama-Data-1T-Sample_all.jsonl', save_name='RedPajama-Sample', max_n=32, key="input_ids", add_eos_id=True)

@@ -62,9 +62,19 @@ def tokenize_alpaca_docs(
     with Path(output_path).open('w', encoding='utf-8') as w_f:
         w_f.write('\n'.join(data))
 
-if __name__ == '__main__':
-    get_alpaca_docs()
-    tokenize_alpaca_docs()
-    # tokenizer = AutoTokenizer.from_pretrained('huggyllama/llama-7b')
+def sample_redpajama_sample(data_path, num):
+    new_data = []
+    with Path(data_path).open('r', encoding='utf-8') as r_f:
+        for line in r_f:
+            item = json.loads(line.strip())
+            new_data.append(json.dumps({'input_ids': item['input_ids']}))
+    
+    with Path(data_path).open('w', encoding='utf-8') as w_f:
+        w_f.write('\n'.join(new_data))
+        
 
-    # print(tokenizer.decode([385,15278, 393, 16612,  263,  3414 , 29889,  14350,  263,  2933, 393, 7128, 2486, 1614, 2167, 278, 2009, 29889, 13, 13, 2277, 29937, 2799, 4080, 29901, 13, 1888, 22094, 366, 505, 263, 740]))
+if __name__ == '__main__':
+    # get_alpaca_docs()
+    # tokenize_alpaca_docs()
+    sample_redpajama_sample('tokenized_data/RedPajama-Data-1T-Sample_all.jsonl', 0)
+    
