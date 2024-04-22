@@ -22,8 +22,7 @@ ALPACA_PROMPT_DICT = {
         "### Instruction:\n{instruction}\n\n### Response:"
     ),
 }
-with Path('n_gram_distribution/alpaca_distribution.json').open('r', encoding='utf-8') as r_f:
-    ngram_dist = json.load(r_f)
+
 
 def ngram_llm(tks, n, ngram_dist):
     assert len(tks) <= n 

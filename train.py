@@ -9,6 +9,7 @@ from tqdm import tqdm
 from torch.utils.data import Dataset, DataLoader
 import transformers
 from typing import Dict, Optional, Sequence
+from torch import nn
 
 import torch
 import copy
@@ -158,7 +159,7 @@ class DataCollatorForNGramSmoothLabel(object):
         soft_labels = []
         
         for label in labels:
-            soft_label = np.zeros((len(label), self.tokenizer.vocab_size), dtype=np.float32)
+            soft_label = np.zeros((len(label), self.tokenizer.vocab_size + 1), dtype=np.float32)
             cur_len = 0
             label = label.tolist()
             for i in range(len(label)):
@@ -171,13 +172,15 @@ class DataCollatorForNGramSmoothLabel(object):
                     soft_label[i] = soft_label[i]*(1-self.alpha)
                     soft_label[i][label[i]] += self.alpha
                     cur_len += 1
+                # else:
+                #     soft_label[i] = IGNORE_INDEX
             soft_labels.append(torch.tensor(soft_label))
 
         input_ids = torch.nn.utils.rnn.pad_sequence(
             input_ids, batch_first=True, padding_value=self.tokenizer.pad_token_id
         )
         labels = torch.nn.utils.rnn.pad_sequence(labels, batch_first=True, padding_value=IGNORE_INDEX)
-        soft_labels = torch.nn.utils.rnn.pad_sequence(soft_labels, batch_first=True, padding_value=IGNORE_INDEX)
+        soft_labels = torch.nn.utils.rnn.pad_sequence(soft_labels, batch_first=True, padding_value=0.0)
         return dict(
             input_ids=input_ids,
             labels=labels,
@@ -197,28 +200,25 @@ class DataCollatorForNormalSmoothLabel(object):
         soft_labels = []
         
         for label in labels:
-            soft_label = np.zeros((len(label), self.tokenizer.vocab_size), dtype=np.float32).fill((1-self.alpha)/(self.tokenizer.vocab_size-1))
-            soft_label[np.arange(len(label)), label] = self.alpha
+            soft_label = np.zeros((len(label), self.tokenizer.vocab_size + 1), dtype=np.float32).fill((1-self.alpha)/(self.tokenizer.vocab_size-1))
+            for i in range(len(label)):
+                if label[i] != IGNORE_INDEX:
+                    soft_label[i][label[i]] = self.alpha
+                else:
+                    soft_label[i] = 0.0
             soft_labels.append(torch.tensor(soft_label))
 
         input_ids = torch.nn.utils.rnn.pad_sequence(
             input_ids, batch_first=True, padding_value=self.tokenizer.pad_token_id
         )
-        soft_labels = torch.nn.utils.rnn.pad_sequence(soft_labels, batch_first=True, padding_value=IGNORE_INDEX)
         labels = torch.nn.utils.rnn.pad_sequence(labels, batch_first=True, padding_value=IGNORE_INDEX)
+        soft_labels = torch.nn.utils.rnn.pad_sequence(soft_labels, batch_first=True, padding_value=0.0)
         return dict(
             input_ids=input_ids,
             labels=labels,
             soft_labels=soft_labels,
             attention_mask=input_ids.ne(self.tokenizer.pad_token_id),
         )
-
-def make_supervised_data_module(tokenizer: transformers.PreTrainedTokenizer, data_args) -> Dict:
-    """Make dataset and collator for supervised fine-tuning."""
-    train_dataset = SupervisedDataset(tokenizer=tokenizer, data_path=data_args.data_path)
-    data_collator = DataCollatorForSupervisedDataset(tokenizer=tokenizer)
-    return dict(train_dataset=train_dataset, eval_dataset=None, data_collator=data_collator)
-
 
 
 def smart_tokenizer_and_embedding_resize(
@@ -243,10 +243,21 @@ def smart_tokenizer_and_embedding_resize(
         input_embeddings[-num_new_tokens:] = input_embeddings_avg
         output_embeddings[-num_new_tokens:] = output_embeddings_avg
 
+class SoftTrainer(Trainer):
+    def compute_loss(self, model, inputs, return_outputs=False):
+        soft_labels = inputs.pop("soft_labels")[..., 1:, :].contiguous()
+        # forward pass
+        outputs = model(**inputs)
+        logits = outputs.get("logits")[..., :-1, :].contiguous()
+        # compute custom loss for 3 labels with different weights
+        loss = torch.nn.functional.cross_entropy(
+                    logits.reshape((-1, logits.size(-1))), soft_labels.reshape((-1, soft_labels.size(-1))))
+        return (loss, outputs) if return_outputs else loss
+
 
 def train(args):
     model = AutoModelForCausalLM.from_pretrained(
-        args.model_name,
+        args.model_name, device_map='auto'
     )
 
     tokenizer = transformers.AutoTokenizer.from_pretrained(
@@ -271,14 +282,7 @@ def train(args):
     )
 
     train_dataset = SupervisedDataset(tokenizer=tokenizer, data_path=args.data_path)
-    if args.smooth_pattern == "n_gram":
-        with Path(args.ngram_dist_path).open('r', encoding='utf-8') as r_f:
-            ngram_dist = json.load(r_f)
-        data_collator = DataCollatorForNGramSmoothLabel(tokenizer=tokenizer, max_n=args.max_n, ngram_dist=ngram_dist, alpha=args.alpha)
-    elif args.smooth_pattern == "normal":
-        data_collator = DataCollatorForNormalSmoothLabel(tokenizer=tokenizer, alpha=args.alpha)
-    elif args.smooth_pattern == "no":
-        data_collator = DataCollatorForSupervisedDataset(tokenizer=tokenizer)
+    
 
     training_args = TrainingArguments(
         bf16 = True,
@@ -292,9 +296,9 @@ def train(args):
         logging_steps=1,
         output_dir=f"record/{args.tag}/models/",
         save_strategy="steps",
-        save_steps=200,
+        save_steps=2000,
         optim="adamw_torch",
-        dataloader_num_workers = 3,
+        dataloader_num_workers = 4,
         save_only_model=True,
         seed=args.seed,
         data_seed=args.seed
@@ -305,13 +309,30 @@ def train(args):
     with Path(f"record/{args.tag}/args.json").open('w', encoding='utf-8') as w_f:
         json.dump(vars(args), w_f, ensure_ascii=False, indent=4)
 
+    if args.smooth_pattern == "n_gram":
+        with Path(args.ngram_dist_path).open('r', encoding='utf-8') as r_f:
+            ngram_dist = json.load(r_f)
+        data_collator = DataCollatorForNGramSmoothLabel(tokenizer=tokenizer, max_n=args.max_n, ngram_dist=ngram_dist, alpha=args.alpha)
+    elif args.smooth_pattern == "normal":
+        data_collator = DataCollatorForNormalSmoothLabel(tokenizer=tokenizer, alpha=args.alpha)
+    elif args.smooth_pattern == "no":
+        data_collator = DataCollatorForSupervisedDataset(tokenizer=tokenizer)
+
     # Create trainer
-    trainer = Trainer(
-        model=model,
-        train_dataset=train_dataset,
-        args=training_args,
-        data_collator=data_collator,
-    )
+    if args.smooth_pattern in ["n_gram", "normal"]:
+        trainer = SoftTrainer(
+            model=model,
+            train_dataset=train_dataset,
+            args=training_args,
+            data_collator=data_collator,
+        )
+    elif args.smooth_pattern == "no":
+        trainer = Trainer(
+            model=model,
+            train_dataset=train_dataset,
+            args=training_args,
+            data_collator=data_collator,
+        )
     # Train the model
     trainer.train()
     
@@ -331,7 +352,7 @@ if __name__ == '__main__':
     parser.add_argument(
         "--data_path",
         type=str,
-        required=True,
+        default="finetuning_data/alpaca_data.json"
     )
     parser.add_argument(
         "--ngram_dist_path",
@@ -340,7 +361,7 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         "--max_n",
-        type=str,
+        type=int,
         default=32,
     )
     parser.add_argument(
@@ -383,7 +404,7 @@ if __name__ == '__main__':
 
     wandb.init(
         config=args, 
-        project="FB-LLM_qat",
+        project="SAR-LLM",
         name=args.tag,
         group='train'
     )
