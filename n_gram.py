@@ -46,6 +46,8 @@ def stat_file_ngram(file_p, n_gram=1, key='tk_ids', add_eos_id=False):
         _prefix = ' '.join(k.split()[:-1])
         if len(prefix_dict[_prefix]) > 1:
             res['n_gram_dict'][k] = v 
+    del prefix_dict
+    del n_gram_dict
     res['n_gram_num_p>1']   = sum(res['n_gram_dict'].values())
     res['n_gram_vsize_p>1'] = len(res['n_gram_dict'])
     return res
@@ -84,7 +86,8 @@ def multi_get_all_ngram_count(tk_file_path, save_name, max_n, key, add_eos_id):
                    save_name = save_name, 
                    key=key, 
                    add_eos_id=add_eos_id)
-    params = list(range(4, 16))
+    params = list(range(7,9))
+    # params = [8, 10, 12]
     with Pool(len(params)) as pool:
         pool.map(func, params)
 
@@ -169,4 +172,9 @@ if __name__ == '__main__':
     
     # get_all_ngram_count(tk_file_path = 'tokenized_data/RedPajama-Data-1T-Sample_all.jsonl', save_name='RedPajama-Sample', max_n=32, key="input_ids", add_eos_id=True)
     # get_infi_ngram_distribution('n_gram_dicts/RedPajama-Sample', max_n_gram=32)
-    multi_get_all_ngram_count(tk_file_path = 'tokenized_data/RedPajama-Data-1T-Sample_all.jsonl', save_name='RedPajama-Sample', max_n=32, key="input_ids", add_eos_id=True)
+
+    # multi_get_all_ngram_count(tk_file_path = 'tokenized_data/RedPajama-Sample_50k_tokenized.jsonl', save_name='RedPajama-Sample-50k', max_n=32, key="tk_ids", add_eos_id=False)
+    # get_infi_ngram_distribution('n_gram_dicts/RedPajama-Sample-50k', max_n_gram=16)
+
+    multi_get_all_ngram_count(tk_file_path = 'tokenized_data/RedPajama-Sample_150k_tokenized.jsonl', save_name='RedPajama-Sample-150k', max_n=32, key="tk_ids", add_eos_id=False)
+    # get_infi_ngram_distribution('n_gram_dicts/RedPajama-Sample-50k', max_n_gram=16)

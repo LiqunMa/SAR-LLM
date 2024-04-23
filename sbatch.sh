@@ -24,11 +24,17 @@
 # n-gram, max_n 4, alpha 0.6
 # python train.py --tag ngram_4_06 --smooth_pattern n_gram --max_n 4 --alpha 0.6
 
-# n-gram, max_n 2, alpha 0.6
-python train.py --tag ngram_2_06 --smooth_pattern n_gram --max_n 2 --alpha 0.6
+# # n-gram, max_n 2, alpha 0.6
+# python train.py --tag ngram_2_06 --smooth_pattern n_gram --max_n 2 --alpha 0.6
+
+# # n-gram, max_n 1, alpha 0.6
+# python train.py --tag ngram_1_06 --smooth_pattern n_gram --max_n 1 --alpha 0.6
 
 # # normal, alpha 0.6
 # python train.py --tag normal_06 --smooth_pattern normal --alpha 0.6
 
 # # normal, alpha 0.8
 # python train.py --tag normal_08 --smooth_pattern normal --alpha 0.8
+
+# n-gram, max_n 16, alpha 0.8
+python train.py --tag ngram_16_06 --smooth_pattern n_gram --max_n 16 --alpha 0.8

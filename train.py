@@ -281,6 +281,7 @@ def train(args):
         tokenizer=tokenizer,
         model=model,
     )
+    
 
     train_dataset = SupervisedDataset(tokenizer=tokenizer, data_path=args.data_path)
     
@@ -338,6 +339,7 @@ def train(args):
     trainer.train()
     
     trainer.save_model(output_dir=save_dir)
+    tokenizer.save_pretrained(save_dir)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Model Training Script")

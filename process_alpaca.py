@@ -4,6 +4,7 @@ from pathlib import Path
 import json
 from tqdm import tqdm
 import numpy as np
+import random
 
 IGNORE_INDEX = -100
 DEFAULT_PAD_TOKEN = "[PAD]"
@@ -62,19 +63,49 @@ def tokenize_alpaca_docs(
     with Path(output_path).open('w', encoding='utf-8') as w_f:
         w_f.write('\n'.join(data))
 
-def sample_redpajama_sample(data_path, num):
+def sample_redpajama_sample(data_path, out_path, num):
     new_data = []
     with Path(data_path).open('r', encoding='utf-8') as r_f:
-        for line in r_f:
-            item = json.loads(line.strip())
-            new_data.append(json.dumps({'input_ids': item['input_ids']}))
+        for i, line in enumerate(r_f):
+            if i == num:
+                break
+            new_data.append(line)
     
-    with Path(data_path).open('w', encoding='utf-8') as w_f:
-        w_f.write('\n'.join(new_data))
+    with Path(out_path).open('w', encoding='utf-8') as w_f:
+        w_f.write(''.join(new_data))
+
+def merge_Redpajama_sample(data_dir):
+    data = []
+    for dp in Path(data_dir).iterdir():
+        print(dp.stem)
+        with dp.open('r', encoding='utf-8') as r_f:
+            for line in tqdm(r_f):
+                item = json.loads(line.strip())    
+                source = dp.stem.split('_')[0]
+                data.append(json.dumps({'text': item['text'], 'source': source}))
+    random.seed(0)
+    random.shuffle(data)
+    print('total num', len(data))
+    with Path('finetuning_data/RedPajama-Sample_all.jsonl').open('w', encoding='utf-8') as w_f:
+        w_f.write('\n'.join(data))
+
+def tokenize_Redpajama_sample(data_path, output_path):
+    data = []
+    tokenizer = AutoTokenizer.from_pretrained('huggyllama/llama-7b')
+    with Path(data_path).open('r', encoding='utf-8') as r_f:
+        for line in tqdm(r_f):
+            item = json.loads(line.strip())
+            doc_tks = tokenizer(item['text'])['input_ids'] + [tokenizer.eos_token_id]
+            data.append(json.dumps({'tk_ids': doc_tks}))
+    with Path(output_path).open('w', encoding='utf-8') as w_f:
+        w_f.write('\n'.join(data))
         
 
 if __name__ == '__main__':
     # get_alpaca_docs()
     # tokenize_alpaca_docs()
-    sample_redpajama_sample('tokenized_data/RedPajama-Data-1T-Sample_all.jsonl', 0)
+
+    # merge_Redpajama_sample('Redpajama-Sample')
+    # tokenize_Redpajama_sample('finetuning_data/RedPajama-Sample_all.jsonl', 'tokenized_data/RedPajama-Sample_all_tokenized.jsonl')
+    sample_redpajama_sample('tokenized_data/RedPajama-Sample_all_tokenized.jsonl', 'tokenized_data/RedPajama-Sample_50k_tokenized.jsonl', 50000)
     
