@@ -312,7 +312,8 @@ def train(args):
         json.dump(vars(args), w_f, ensure_ascii=False, indent=4)
 
     if args.smooth_pattern == "n_gram":
-        with Path(args.ngram_dist_path).open('r', encoding='utf-8') as r_f:
+        ngram_dist_path = Path(f"n_gram_distribution/{args.ngram_dist_name}_distribution.json")
+        with Path(ngram_dist_path).open('r', encoding='utf-8') as r_f:
             ngram_dist = json.load(r_f)
         data_collator = DataCollatorForNGramSmoothLabel(tokenizer=tokenizer, max_n=args.max_n, ngram_dist=ngram_dist, alpha=args.alpha)
     elif args.smooth_pattern == "normal":
@@ -358,9 +359,9 @@ if __name__ == '__main__':
         default="finetuning_data/alpaca_data.json"
     )
     parser.add_argument(
-        "--ngram_dist_path",
+        "--ngram_dist_name",
         type=str,
-        default="n_gram_distribution/alpaca_distribution.json",
+        default="alpaca",
     )
     parser.add_argument(
         "--max_n",

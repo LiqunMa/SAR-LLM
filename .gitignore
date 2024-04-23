@@ -5,3 +5,4 @@ n_gram_distribution/
 tokenized_data/
 record/
 slurm*
+wandb/
