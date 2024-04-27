@@ -3,6 +3,23 @@ Code: [https://github.com/LiqunMa/SAR-LLM](https://github.com/LiqunMa/SAR-LLM)
 
 ## How to finetuning with soft targets
 
+### Requirements
+accelerate==0.29.3
+
+datasets==2.19.0
+
+lm_eval==0.4.2
+
+tokenizers==0.19.1
+
+torch==2.2.2
+
+transformers==4.40.0
+
+wandb==0.16.2
+
+vllm==0.3.2
+
 ### Download data
 1. Alpaca: [https://github.com/tatsu-lab/stanford_alpaca/blob/main/alpaca_data.json](https://github.com/tatsu-lab/stanford_alpaca/blob/main/alpaca_data.json). Please save in `finetuning_data/`.
 2. RedPajama-Data-1T-Sample: [https://huggingface.co/datasets/togethercomputer/RedPajama-Data-1T-Sample](https://huggingface.co/datasets/togethercomputer/RedPajama-Data-1T-Sample). Please save in `finetuning_data/Redpajama-Sample`.

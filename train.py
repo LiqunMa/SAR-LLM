@@ -240,10 +240,8 @@ def smart_tokenizer_and_embedding_resize(
 class SoftTrainer(Trainer):
     def compute_loss(self, model, inputs, return_outputs=False):
         soft_labels = inputs.pop("soft_labels")[..., 1:, :].contiguous()
-        # forward pass
         outputs = model(**inputs)
         logits = outputs.get("logits")[..., :-1, :].contiguous()
-        # compute custom loss for 3 labels with different weights
         loss = torch.nn.functional.cross_entropy(
                     logits.reshape((-1, logits.size(-1))), soft_labels.reshape((-1, soft_labels.size(-1))))
         return (loss, outputs) if return_outputs else loss
