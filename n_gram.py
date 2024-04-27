@@ -86,8 +86,7 @@ def multi_get_all_ngram_count(tk_file_path, save_name, max_n, key, add_eos_id):
                    save_name = save_name, 
                    key=key, 
                    add_eos_id=add_eos_id)
-    params = list(range(7,9))
-    # params = [8, 10, 12]
+    params = list(range(1,max_n+1))
     with Pool(len(params)) as pool:
         pool.map(func, params)
 
@@ -162,19 +161,22 @@ def check():
             json.dump(dist[str(n)], w_f, ensure_ascii=False, indent=4)
         with Path('b.json').open('w') as w_f:
             json.dump(ngram_count, w_f, ensure_ascii=False, indent=4)
-        # print('dist', dist[str(n)])
-        # print('ngram_count', ngram_count)
+
+def stat():
+    tk_num = 0
+    with Path("tokenized_data/RedPajama-Sample_50k_tokenized.jsonl").open('r') as r_f:
+        for line in r_f:
+            tk_num += len(json.loads(line.strip())['tk_ids'])
+    print(tk_num)
 
 if __name__ == '__main__':
-    # get_max_len('tokenized_data/alpaca_tokenized.json')
-    # get_all_ngram_count()
-    # get_infi_ngram_distribution('n_gram_dicts/alpaca', max_n_gram=32)
+    get_all_ngram_count(tk_file_path = 'tokenized_data/alpaca_tokenized.json', save_name='alpaca', max_n=32, key="tk_ids", add_eos_id=False)
+    get_infi_ngram_distribution('n_gram_dicts/alpaca', max_n_gram=32)
     
-    # get_all_ngram_count(tk_file_path = 'tokenized_data/RedPajama-Data-1T-Sample_all.jsonl', save_name='RedPajama-Sample', max_n=32, key="input_ids", add_eos_id=True)
-    # get_infi_ngram_distribution('n_gram_dicts/RedPajama-Sample', max_n_gram=32)
 
-    # multi_get_all_ngram_count(tk_file_path = 'tokenized_data/RedPajama-Sample_50k_tokenized.jsonl', save_name='RedPajama-Sample-50k', max_n=32, key="tk_ids", add_eos_id=False)
-    # get_infi_ngram_distribution('n_gram_dicts/RedPajama-Sample-50k', max_n_gram=16)
+    multi_get_all_ngram_count(tk_file_path = 'tokenized_data/RedPajama-Sample_50k_tokenized.jsonl', save_name='RedPajama-Sample-50k', max_n=32, key="tk_ids", add_eos_id=False)
+    get_infi_ngram_distribution('n_gram_dicts/RedPajama-Sample-50k', max_n_gram=16)
 
-    multi_get_all_ngram_count(tk_file_path = 'tokenized_data/RedPajama-Sample_150k_tokenized.jsonl', save_name='RedPajama-Sample-150k', max_n=32, key="tk_ids", add_eos_id=False)
-    # get_infi_ngram_distribution('n_gram_dicts/RedPajama-Sample-50k', max_n_gram=16)
+
+    multi_get_all_ngram_count(tk_file_path = 'tokenized_data/alpaca_RedPajama-Sample_50k_tokenized.jsonl', save_name='alpaca_RedPajama-Sample-50k', max_n=16, key="tk_ids", add_eos_id=False)
+    get_infi_ngram_distribution('n_gram_dicts/alpaca_RedPajama-Sample-50k', max_n_gram=16)

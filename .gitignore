@@ -6,3 +6,5 @@ tokenized_data/
 record/
 slurm*
 wandb/
+alpaca_eval_record/
+ppl_eval_record/

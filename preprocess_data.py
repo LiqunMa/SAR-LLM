@@ -3,7 +3,6 @@ from transformers import AutoTokenizer
 from pathlib import Path
 import json
 from tqdm import tqdm
-import numpy as np
 import random
 
 IGNORE_INDEX = -100
