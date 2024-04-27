@@ -1,7 +1,7 @@
 # SAR-LLM
 Code: [https://github.com/LiqunMa/SAR-LLM](https://github.com/LiqunMa/SAR-LLM)
 
-## How to finetuning with soft targets
+## How to finetuning LLMs with soft targets
 
 ### Requirements
 accelerate==0.29.3
