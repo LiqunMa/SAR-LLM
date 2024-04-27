@@ -115,6 +115,9 @@ def get_alpaca_redpajama_merge():
         
 
 if __name__ == '__main__':
+    tokenized_data_dir = Path('tokenized_data')
+    tokenized_data_dir.mkdir(exist_ok=True)
+    
     get_alpaca_docs()
     tokenize_alpaca_docs()
 
