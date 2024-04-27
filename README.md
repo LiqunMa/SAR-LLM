@@ -52,4 +52,4 @@ Get the win rate:
 
 `alpaca_eval.sh`
 
-For more information, please refer to [AlpacaEval](https://github.com/tatsu-lab/alpaca_eval)。
+For more information, please refer to [AlpacaEval](https://github.com/tatsu-lab/alpaca_eval).
