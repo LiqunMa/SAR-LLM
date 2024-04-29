@@ -41,10 +41,10 @@ Please adjust the specific configuration parameters based on your Slurm setup:
 `bash eval_vllm.sh`
 
 ### Eval PPL
-`bash eval_vllm.sh`
+`bash eval_ppl.sh`
 
 ### AlpacaEval
-Get the output of eval dataset:
+Get the output of the AlpacaEval dataset:
 
 `bash alpaca_eval_output.sh`
 
